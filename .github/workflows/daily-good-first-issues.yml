@@ -19,8 +19,11 @@ jobs:
     steps:
       - name: Find issues and post a list
         run: |
+          # only look at issues touched in the last 30 days
+          SINCE=$(date -u -d '30 days ago' +%F)
+
           {
-            echo "Good first issues for you today."
+            echo "Good first issues for you today (random picks)."
             echo "Pick ONE, read it fully, and comment before you start working."
             echo
             for LANG in python javascript; do
@@ -31,10 +34,14 @@ jobs:
                 --state open \
                 --no-assignee \
                 --archived=false \
-                --sort updated \
-                --limit 10 \
+                --comments "<5" \
+                --updated ">=$SINCE" \
+                --sort created \
+                --limit 50 \
                 --json title,url,repository \
-                --jq '.[] | "- [\(.repository.nameWithOwner)] [\(.title)](\(.url))"'
+                --jq '.[] | "- [\(.repository.nameWithOwner)] [\(.title)](\(.url))"' \
+                -- "-label:announcement" "-org:actions" "-org:github" \
+                | shuf -n 10
               echo
             done
           } > body.md
