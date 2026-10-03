@@ -1,0 +1,45 @@
+name: Daily good first issues
+
+on:
+  schedule:
+    # 03:00 UTC every day = 8:30 AM India time
+    - cron: "0 3 * * *"
+  # lets you run it by hand from the Actions tab to test it
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  find-issues:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Find issues and post a list
+        run: |
+          {
+            echo "Good first issues for you today."
+            echo "Pick ONE, read it fully, and comment before you start working."
+            echo
+            for LANG in python javascript; do
+              echo "## $LANG"
+              gh search issues \
+                --label "good first issue" \
+                --language "$LANG" \
+                --state open \
+                --no-assignee \
+                --archived=false \
+                --sort updated \
+                --limit 10 \
+                --json title,url,repository \
+                --jq '.[] | "- [\(.repository.nameWithOwner)] [\(.title)](\(.url))"'
+              echo
+            done
+          } > body.md
+
+          gh issue create \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Today's issues - $(date -u +%F)" \
+            --body-file body.md
